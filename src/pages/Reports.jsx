@@ -31,15 +31,11 @@ const columns = [
     key: "service",
   },
   {
-    title: "Expense",
+    title: "Income",
     dataIndex: "expense",
     key: "expense",
   },
-  {
-    title: "Remark",
-    dataIndex: "remark",
-    key: "remark",
-  },
+ 
 ];
 
 const data = [

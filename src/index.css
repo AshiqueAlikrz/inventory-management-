@@ -16,3 +16,8 @@ code {
 .ant-modal-content {
   width: auto;
 }
+
+.ant-select-selector {
+  width: 10000px;
+  height: 150px;
+}
