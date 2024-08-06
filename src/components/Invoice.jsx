@@ -4,6 +4,8 @@ import jsPDF from "jspdf";
 import AlwahdaLogo from "../assets/alwahda_logo-removebg-preview.png";
 import { billingDataContext } from "../contexts/DataContext";
 import alwahdaText from "../assets/Untitled-1.png";
+import { AiOutlineMail } from "react-icons/ai";
+import { GiWorld } from "react-icons/gi";
 
 const Invoice = () => {
   const { billingData } = useContext(billingDataContext);
@@ -11,7 +13,7 @@ const Invoice = () => {
 
   const handleDownload = () => {
     const element = invoiceRef.current;
-    const scale = 3;
+    const scale = 1.5;
 
     html2canvas(element, {
       scale,
@@ -19,7 +21,7 @@ const Invoice = () => {
       allowTaint: true,
       logging: true,
     }).then((canvas) => {
-      const imgData = canvas.toDataURL("image/png", 0.95);
+      const imgData = canvas.toDataURL("image/png", 1.0);
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "pt",
@@ -31,7 +33,7 @@ const Invoice = () => {
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save("invoice.pdf");
+      pdf.save(billingData.name);
     });
   };
 
@@ -40,7 +42,7 @@ const Invoice = () => {
   };
 
   return (
-    <div className="hello">
+    <div className="m-8">
       <style>
         {`
           @media print {
@@ -65,14 +67,14 @@ const Invoice = () => {
         </div>
         <div className="flex justify-between items-center mt-6">
           <div>
-            <h2 className="text-2xl font-bold text-left">Invoice</h2>
-            <p className="text-gray-600 text-left font-medium">Invoice #: 12345</p>
-            <p className="text-gray-600 font-medium">Date : {billingData?.date}</p>
+            <h2 className="text-gray-800 text-2xl font-bold text-left">Invoice</h2>
+            <p className="text-left font-medium">Invoice No: {billingData.invoice}</p>
+            <p className="text-left font-medium">Date : {billingData?.date}</p>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold">Bill To:</h3>
-            <p className="text-gray-600 font-medium">{billingData?.name}</p>
-            <p className="text-gray-600 ">Bur Dubai</p>
+          <div className="flex flex-col items-end w-4/6 h-20 ">
+            <h3 className="text-gray-600 text-lg font-semibold mr-5 ">Bill To:</h3>
+            <p className=" font-medium text-auto ">{billingData?.name}</p>
+            {/* <p className="text-gray-600 ">Bur Dubai</p> */}
           </div>
         </div>
 
@@ -142,11 +144,11 @@ const Invoice = () => {
         <div className="flex justify-around items-center h-8 mt-4 bg-blue-800">
           <p className="text-white font-semibold flex mb-3">
             {/* <GiWorld className="m-1 size-4" /> */}
-            Website : www.alwahdaonline.com
+            www.alwahdaonline.com
           </p>
           <p className="flex text-white font-semibold mb-3">
             {/* <AiOutlineMail className="m-1 size-4" />  */}
-            Email : alwahda02@gmail.com
+            alwahda02@gmail.com
           </p>
         </div>
       </div>

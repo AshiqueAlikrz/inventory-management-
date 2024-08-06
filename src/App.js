@@ -9,7 +9,22 @@ import { billingDataContext } from "./contexts/DataContext";
 import { useState } from "react";
 
 function App() {
-  const [billingData, setBillingData] = useState({ name: "", date: "", items: [], subTotal: 0, discount: 0, totalAmount: 0 });
+  const [billingData, setBillingData] = useState({
+    name: "",
+    date: "",
+    invoice: "",
+    items: [
+      {
+        description: "",
+        rate: 0,
+        quantity: 0,
+        total: 0,
+      },
+    ],
+    subTotal: 0,
+    grandTotal: 0,
+    discount: 0,
+  });
 
   return (
     <div className="App">

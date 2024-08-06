@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { TinyColor } from "@ctrl/tinycolor";
 import { Modal, Button, ConfigProvider, Space, Select } from "antd";
 import { MdDeleteOutline } from "react-icons/md";
@@ -10,6 +10,9 @@ import { IoMdPrint } from "react-icons/io";
 import { ourServices } from "../data/Solutions";
 import { notification } from "antd";
 import { toast } from "react-toastify";
+import * as Yup from "yup";
+import { Formik, Form, Field, ErrorMessage, useFormik } from "formik";
+import FormItem from "antd/es/form/FormItem";
 
 const colors1 = ["#fc6076", "#FF0000"];
 const colors2 = ["#A4FF6B", "#008000"];
@@ -83,56 +86,108 @@ const ServicesButton = () => {
     }));
   };
 
-  useEffect(() => {
-    const totalAmount = billingData?.items?.reduce((acc, item) => acc + item.total, 0);
-    setBillingData((prevState) => ({
-      ...prevState,
-      totalAmount: totalAmount - billingData?.discount,
-      subTotal: totalAmount,
-    }));
-  }, [billingData.items, rows]);
+  // useEffect(() => {
+  //   const totalAmount = billingData?.items?.reduce((acc, item) => acc + item.total, 0);
+  //   setBillingData((prevState) => ({
+  //     ...prevState,
+  //     totalAmount: totalAmount - billingData?.discount,
+  //     subTotal: totalAmount,
+  //   }));
+  // }, [billingData.items, rows]);
 
-  const inputCheck = () => {
-    const isBillingDataInvalid = billingData.name === "" || billingData.date === "";
-    const Itemselement = billingData?.items?.some((item) => item.description === " " || item.rate === "" || item.quantity === "");
-    const rowsElement = rows?.some((item) => item.description === " " || item.rate === "" || item.quantity === "");
-    if (isBillingDataInvalid || Itemselement || rowsElement) {
-      return true;
-    } else {
-      return false;
-    }
-  };
+  // const inputCheck = () => {
+  //   const isBillingDataInvalid = billingData.name === "" || billingData.date === "" || billingData.invoice === "";
+  //   const Itemselement = billingData?.items?.some((item) => item.description === " " || item.rate === "" || item.quantity === "");
+  //   const rowsElement = rows?.some((item) => item.description === " " || item.rate === "" || item.quantity === "");
+  //   if (isBillingDataInvalid || Itemselement || rowsElement) {
+  //     return true;
+  //   }
+  // };
 
   const addRow = () => {
-    if (inputCheck()) {
-      toast.warning("Fill the fields");
-    } else {
-      const newRow = {
-        id: Math.random() * 100,
-        description: "",
-        rate: "",
-        quantity: "",
-        tax: 1,
-        total: 0,
-      };
-      setRows([...rows, newRow]);
-    }
-    // }
+    formik.setFieldValue("items", [...formik.values.items, { description: "", rate: "", quantity: "" }]);
+    const newRow = {
+      id: Math.random() * 100,
+      description: "",
+      rate: 0,
+      quantity: 0,
+      tax: 1,
+      total: 0,
+    };
+    setRows([...rows, newRow]);
   };
 
   const printInvoice = () => {
-    console.log(inputCheck());
-    if (inputCheck()) {
-      toast.warning("Fill the fields");
-    } else {
-      setBillingData(billingData);
-      navigate("/invoice");
-      // setTimeout(() => {
-      //   setBillingData([]);
-      //   console.log("timeout billing", billingData);
-      // }, 3000);
-    }
+    // console.log(inputCheck());
+    // if (inputCheck()) {
+    // toast.warning("Fill the fields");
+    // } else {
+    // setBillingData(formik.values);
+    // console.log("formik", billingData);
+    // navigate("/invoice");
+    // setTimeout(() => {
+    //   setBillingData([]);
+    // }, 3000);
+    // }
   };
+
+  const [indx, setIndex] = useState(null);
+
+  const validationSchema = Yup.object().shape({
+    name: Yup.string().required("Name is required"),
+    date: Yup.date().required("Date is required"),
+    invoice: Yup.string().required("Invoice number is required"),
+    items: Yup.array()
+      .of(
+        Yup.object().shape({
+          description: Yup.string().required("Description is required"),
+          quantity: Yup.number().required("Quantity is required").min(1, "Quantity must be at least 1"),
+          rate: Yup.number().required("Rate is required").min(1, "Rate must be at least 1"),
+        })
+      )
+      .required("At least one item is required"),
+  });
+
+  // console.log("indeeeeex", indx);
+
+  // Function to handle item selection
+  // const handleSelectItem = (id) => {
+  //   setItemIdToUpdate(id);
+  // };
+
+  const formik = useFormik({
+    initialValues: billingData,
+    validationSchema,
+    onSubmit: (values) => {
+      console.log("values", values);
+      // console.log("formik",formik);
+    },
+  });
+
+  useEffect(() => {
+    formik.values.items.forEach((item, index) => {
+      const formattedTotal = parseFloat(((item.quantity || 0) * (item.rate || 0)).toFixed(2));
+      formik.setFieldValue(`items[${index}].total`, formattedTotal);
+    });
+  }, [formik.values.items, formik.setFieldValue]);
+
+  const subTotal = useMemo(() => {
+    return formik.values.items.reduce((acc, item) => acc + item.total, 0);
+  }, [formik.values.items]);
+
+  const grandTotal = useMemo(() => {
+    const total = subTotal - formik.values.discount;
+    return total;
+  }, [formik.values.items, formik.values]);
+
+  useEffect(() => {
+    formik.setFieldValue("subTotal", subTotal);
+    formik.setFieldValue("grandTotal", grandTotal);
+  }, [subTotal, grandTotal]);
+
+  const formSubmit = () => {
+  };
+  // console.log("useFormik", formik.handleSubmit);
 
   return (
     <>
@@ -179,148 +234,171 @@ const ServicesButton = () => {
       </Space>
 
       {/* modal */}
+
       <Modal
         className="flex justify-center"
         open={open}
         title="BILLING"
-        onOk={handleOk}
+        onOk={formik.handleSubmit}
         onCancel={handleCancel}
         footer={[
-          <Button
-            key="save"
-            // type="primary"
-            onClick={() => {
-              {
-                !inputCheck() && handleOk();
-              }
-              printInvoice();
-            }}
-          >
+          <Button key="save" onClick={formik.handleSubmit}>
             <IoMdPrint />
             PRINT
           </Button>,
-
           <Button key="cancel" type="primary" danger onClick={handleCancel}>
             Cancel
           </Button>,
         ]}
       >
         <div className="container mx-auto">
-          <div className="flex justify-between h-9 w-full bg-slate-100">
-            <div className="flex items-center gap-2 h-9 w-3/6">
-              <h2 className="font-semibold text-base mx-1">Name :</h2>
-              <input
-                type="text"
-                required
-                name="name"
-                value={billingData.name}
-                onChange={(e) => setBillingData({ ...billingData, name: e.target.value })}
-                className="h-8 w-4/6 rounded-md  p-1 font-semibold "
-              />
-            </div>
-            <div className="flex justify-end items-center gap-2 h-9 w-2/6">
-              <h2 className="font-semibold text-base">Date :</h2>
-              <div className="flex space-x-4">
-                <div className="w-full justify-center items-center flex">
-                  <input
-                    required
-                    // placeholder="Enter birth date"
-                    name="date"
-                    value={billingData.date}
-                    onChange={(e) => setBillingData({ ...billingData, date: e.target.value })}
-                    type="date"
-                    className="relative w-full h-8 outline-none text-gray-500 rounded-lg p-2.5 focus:shadow-md mx-2 font-semibold"
-                  />
+          <form>
+            <div className="flex justify-between h-9 w-full bg-slate-100">
+              <div className="flex items-center gap-2 h-9 w-3/6">
+                <h2 className="font-semibold text-base mx-1">Name :</h2>
+                <input type="text" required name="name" value={formik.values.name} onChange={formik.handleChange} className="h-8 w-4/6 rounded-md  p-1 font-semibold " />
+                {/* {formik.errors.name && formik.touched.name ? <div className="text-red-600">{formik.errors.name}</div> : null} */}
+              </div>
+
+              <div className="flex items-center gap-2 h-9 w-3/6">
+                <h2 className="font-semibold text-base mx-1">Invoice :</h2>
+                <input type="number" required name="invoice" value={formik.values.invoice} onChange={formik.handleChange} className="h-8 w-3/6 rounded-md  p-1 font-semibold " />
+                {/* {formik.errors.invoice && formik.touched.invoice ? <div className="text-red-600">{formik.errors.invoice}</div> : null} */}
+              </div>
+
+              <div className="flex justify-end items-center gap-2 h-9 w-2/6">
+                <h2 className="font-semibold text-base">Date :</h2>
+                <div className="flex space-x-4">
+                  <div className="w-full justify-center items-center flex">
+                    <input
+                      required
+                      name="date"
+                      type="date"
+                      value={formik.values.date}
+                      onChange={formik.handleChange}
+                      className="relative w-full h-8 outline-none text-gray-500 rounded-lg p-2.5 focus:shadow-md mx-2 font-semibold"
+                    />
+                    {/* {formik.errors.date && formik.touched.date ? <div className="text-red-600">{formik.errors.date}</div> : null} */}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div className="bg-white shadow-md rounded my-6">
-            <table className="min-w-max w-full table-auto">
-              <thead>
-                <tr className="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
-                  <th className="py-3 px-6 text-right">{rows.length < 1 && <TiPlus className="text-green-600 text-xl hover:text-gray-800 cursor-pointer" onClick={addRow} />}</th>
-                  <th className="py-3 px-6 text-left"></th>
-                  <th className="py-3 px-6 text-left">Serial.No</th>
-                  <th className="py-3 px-6 text-center">Description</th>
-                  <th className="py-3 px-6 text-left">Rate</th>
-                  <th className="py-3 px-6 text-center">Quantity</th>
-                  <th className="py-3 px-6 text-center">Total</th>
-                </tr>
-              </thead>
-              <tbody className="text-gray-600 text-sm font-light">
-                {rows.map((row, index) => (
-                  <tr key={row.id} className="border-b border-gray-200 hover:bg-gray-100">
-                    <td className="py-3 px-6 text-right">
-                      <TiPlus className="text-green-600 text-xl hover:text-gray-800 cursor-pointer" onClick={() => addRow(index)} />
-                    </td>
-                    <td className="py-3 px-6 text-left whitespace-nowrap">
-                      <MdDeleteOutline className="text-red-600 text-xl hover:text-gray-800 cursor-pointer" onClick={() => deleteRow(index)} />
-                    </td>
-                    <td className="py-3 px-6 text-center font-semibold">{index + 1}</td>
-                    <td className="py-3 px-16 text-left whitespace-nowrap font-semibold">
-                      <Select
-                        className="w-72"
-                        showSearch
-                        style={{
-                          width: 200,
-                        }}
-                        placeholder="Search to Select"
-                        optionFilterProp="label"
-                        name="description"
-                        filterSort={(optionA, optionB) => (optionA?.label ?? "").toLowerCase().localeCompare((optionB?.label ?? "").toLowerCase())}
-                        onChange={(value) => handleInputChange(value, "description", row.id)}
-                        options={ourServices}
-                      />
-                    </td>
-                    <td className="py-3 px-2 text-left">
-                      <input
-                        type="number"
-                        className="form-input w-16 h-7 rounded text-center border font-semibold"
-                        name="rate"
-                        value={row.rate}
-                        onChange={(e) => handleInputChange(e.target.value, "rate", row.id)}
-                      />
+            <div className="w-full h-6 flex justify-between">
+              {formik.errors.name && formik.touched.name ? <div className="text-red-600">{formik.errors.name}</div> : null}
+              {formik.errors.invoice && formik.touched.invoice ? <div className="text-red-600">{formik.errors.invoice}</div> : null}
+              {formik.errors.date && formik.touched.date ? <div className="text-red-600">{formik.errors.date}</div> : null}
+            </div>
+            <div className="bg-white shadow-md rounded my-6">
+              <table className="min-w-max w-full table-auto">
+                <thead>
+                  <tr className="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
+                    <th className="py-3 px-6 text-right">{rows.length < 1 && <TiPlus className="text-green-600 text-xl hover:text-gray-800 cursor-pointer" onClick={addRow} />}</th>
+                    <th className="py-3 px-6 text-left"></th>
+                    <th className="py-3 px-6 text-left">Serial.No</th>
+                    <th className="py-3 px-6 text-center">Description</th>
+                    <th className="py-3 px-6 text-left">Rate</th>
+                    <th className="py-3 px-6 text-center">Quantity</th>
+                    <th className="py-3 px-6 text-center">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="text-gray-600 text-sm font-light">
+                  {rows.map((row, index) => (
+                    <tr key={index} className="border-b border-gray-200 hover:bg-gray-100">
+                      <td className="py-3 px-6 text-right">
+                        <TiPlus className="text-green-600 text-xl hover:text-gray-800 cursor-pointer" onClick={() => addRow(index)} />
+                      </td>
+                      <td className="py-3 px-6 text-left whitespace-nowrap">
+                        <MdDeleteOutline className="text-red-600 text-xl hover:text-gray-800 cursor-pointer" onClick={() => deleteRow(index)} />
+                      </td>
+                      <td className="py-3 px-6 text-center font-semibold">{index + 1}</td>
+                      <td className="py-3 px-16 text-left whitespace-nowrap font-semibold">
+                        <Select
+                          className="w-72"
+                          showSearch
+                          style={{
+                            width: 200,
+                          }}
+                          placeholder="Search to Select"
+                          optionFilterProp="label"
+                          filterSort={(optionA, optionB) => (optionA?.label ?? "").toLowerCase().localeCompare((optionB?.label ?? "").toLowerCase())}
+                          // onChange={(value) => handleInputChange(value, "description", row.id)}
+                          // name='description'
+                          name={`items[${index}].description`}
+                          value={formik?.values?.items[index]?.description}
+                          onChange={(value) => formik.setFieldValue(`items[${index}].description`, value)}
+                          options={ourServices}
+                        />
+                        {formik.errors.items && formik.touched.items && formik.errors.items[index]?.description && formik.touched.items[index]?.description && (
+                          <div className="text-red-600 font-thin text-xs">{formik.errors.items[index].description}</div>
+                        )}
+                      </td>
+
+                      <td className="py-3 px-2 text-left ">
+                        <input
+                          type="number"
+                          className="form-input w-16 h-7 rounded text-center border font-semibold"
+                          name={`items[${index}].rate`}
+                          value={formik?.values?.items[index]?.rate}
+                          onChange={formik.handleChange}
+                        />
+                        {formik.errors.items && formik.touched.items && formik.errors.items[index]?.rate && formik.touched.items[index]?.rate && (
+                          <div className="text-red-600 text-xs">{formik.errors.items[index].rate}</div>
+                        )}
+                      </td>
+
+                      <td className="py-3 px-2 text-center ">
+                        <input
+                          type="number"
+                          className="form-input w-16 h-7 rounded text-center border font-semibold"
+                          required
+                          name={`items[${index}].quantity`}
+                          value={formik?.values?.items[index]?.quantity}
+                          onChange={formik.handleChange}
+                        />
+                        {formik.errors.items && formik.touched.items && formik.errors.items[index]?.quantity && formik.touched.items[index]?.quantity && (
+                          <div className="text-red-600 text-xs">{formik.errors.items[index].quantity}</div>
+                        )}
+                      </td>
+                      <td
+                        className="py-3 px-6 text-center font-semibold"
+                        // name={`items[${index}].total`}
+                        // value={formik?.values?.items[index]?.total}
+                        // onChange={formik.handleChange}
+                      >
+                        {!isNaN(formik?.values?.items[index]?.rate * formik?.values?.items[index]?.quantity)
+                          ? (formik?.values?.items[index]?.rate * formik?.values?.items[index]?.quantity).toFixed(2)
+                          : "0.00"}
+                      </td>
+                    </tr>
+                  ))}
+
+                  <tr className="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
+                    <td colSpan="6" className="py-3 px-6 text-right font-bold">
+                      Discount
                     </td>
                     <td className="py-3 px-2 text-left flex justify-center">
                       <input
                         type="number"
                         className="form-input w-16 h-7 rounded text-center border font-semibold"
-                        name="quantity"
+                        name="discount"
                         required
-                        value={row.quantity}
-                        onChange={(e) => handleInputChange(e.target.value, "quantity", row.id)}
+                        value={formik?.values?.discount}
+                        onChange={formik?.handleChange}
                       />
+                      {/* {formik.errors.discount && formik.touched.discount ? <div className="text-red-600">{formik.errors.discount}</div> : null} */}
                     </td>
-                    {/* <td className="py-3 px-6 text-center font-semibold">{row.tax}</td> */}
-                    <td className="py-3 px-6 text-center font-semibold"> {(row.quantity * row.rate).toFixed(2)}</td>
                   </tr>
-                ))}
 
-                <tr className="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
-                  <td colSpan="6" className="py-3 px-6 text-right font-bold">
-                    Discount
-                  </td>
-                  <td className="py-3 px-2 text-left flex justify-center">
-                    <input
-                      type="number"
-                      className="form-input w-16 h-7 rounded text-center border font-semibold"
-                      name="quantity"
-                      required
-                      onChange={(e) => handleInputChange(e.target.value, "discount")}
-                    />
-                  </td>
-                </tr>
-
-                <tr className="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
-                  <td colSpan="6" className="py-3 px-6 text-right font-bold">
-                    Grand Total
-                  </td>
-                  <td className="py-3 px-6 text-right font-bold">AED {billingData?.totalAmount?.toFixed(2)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                  <tr className="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
+                    <td colSpan="6" className="py-3 px-6 text-right font-bold">
+                      Grand Total
+                    </td>
+                    <td className="py-3 px-6 text-right font-bold">AED {formik?.values?.grandTotal?.toFixed(2)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </form>
         </div>
       </Modal>
     </>
