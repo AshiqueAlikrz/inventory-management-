@@ -24,7 +24,7 @@ const ServicesButton = () => {
   const { billingData, setBillingData } = useContext(billingDataContext);
 
   const [open, setOpen] = useState(false);
-  const [rows, setRows] = useState([{ id: 1, description: "", quantity: "", rate: "", tax: 1, total: 0 }]);
+  const [rows, setRows] = useState([{ id: "", description: "", quantity: "", rate: "", tax: 1, total: 0 }]);
   const [inputFields, setInputFields] = useState(false);
 
   const showModal = () => {
@@ -42,97 +42,18 @@ const ServicesButton = () => {
   const services = ["Tasheel", "visa", "printing", "family visa"];
   const options = services.map((service) => ({ value: service }));
 
-  // Calculate totalAmount based on items totals
+  const addRow = (index) => {
+    const newRow = { id: index + 1, description: "", rate: "", quantity: "" };
+    formik.setFieldValue("items", [...formik.values.items, newRow]);
+  };
 
   const deleteRow = (deleteRowId) => {
-    console.log(deleteRowId);
-    setRows(rows?.filter((row, index) => index !== deleteRowId));
     if (deleteRowId > -1) {
-      // rows?.splice(deleteRowId, 1);
-      billingData?.items?.splice(deleteRowId, 1);
+      const updatedItems = formik.values.items.filter((item, index) => index !== deleteRowId);
+      formik.setFieldValue("items", updatedItems);
     }
   };
-
-  //input values
-  let discount = 0;
-
-  const handleInputChange = (value, name, rowId) => {
-    // console.log(value, name, rowId);
-    if (name === "discount") {
-      discount = Number(value);
-      setBillingData((prevState) => ({
-        ...prevState,
-        discount,
-      }));
-    }
-    const updatedRows = rows?.map((row) => (row.id === rowId ? { ...row, [name]: value } : row));
-    // const anyEmptyFields = updatedRows?.some((item) => item.quantity === "" || item.rate === "" || item.description === "");
-    // if (updatedRows.length === 1) {
-    //   setInputFields(true);
-    //   console.log("input", inputFields);
-    // }
-    setRows(updatedRows);
-    const updatedItems = updatedRows.map((row) => ({
-      id: Math.random() * 100,
-      description: row.description,
-      quantity: Number(row.quantity),
-      rate: Number(row.rate),
-      total: row.quantity * row.rate,
-    }));
-
-    setBillingData((prevState) => ({
-      ...prevState,
-      items: updatedItems,
-    }));
-  };
-
-  // useEffect(() => {
-  //   const totalAmount = billingData?.items?.reduce((acc, item) => acc + item.total, 0);
-  //   setBillingData((prevState) => ({
-  //     ...prevState,
-  //     totalAmount: totalAmount - billingData?.discount,
-  //     subTotal: totalAmount,
-  //   }));
-  // }, [billingData.items, rows]);
-
-  // const inputCheck = () => {
-  //   const isBillingDataInvalid = billingData.name === "" || billingData.date === "" || billingData.invoice === "";
-  //   const Itemselement = billingData?.items?.some((item) => item.description === " " || item.rate === "" || item.quantity === "");
-  //   const rowsElement = rows?.some((item) => item.description === " " || item.rate === "" || item.quantity === "");
-  //   if (isBillingDataInvalid || Itemselement || rowsElement) {
-  //     return true;
-  //   }
-  // };
-
-  const addRow = () => {
-    formik.setFieldValue("items", [...formik.values.items, { description: "", rate: "", quantity: "" }]);
-    const newRow = {
-      id: Math.random() * 100,
-      description: "",
-      rate: 0,
-      quantity: 0,
-      tax: 1,
-      total: 0,
-    };
-    setRows([...rows, newRow]);
-  };
-
-  const printInvoice = () => {
-    // console.log(inputCheck());
-    // if (inputCheck()) {
-    // toast.warning("Fill the fields");
-    // } else {
-    // setBillingData(formik.values);
-    // console.log("formik", billingData);
-    // navigate("/invoice");
-    // setTimeout(() => {
-    //   setBillingData([]);
-    // }, 3000);
-    // }
-  };
-
-  const [indx, setIndex] = useState(null);
-
+  
   const validationSchema = Yup.object().shape({
     name: Yup.string().required("Name is required"),
     date: Yup.date().required("Date is required"),
@@ -148,19 +69,13 @@ const ServicesButton = () => {
       .required("At least one item is required"),
   });
 
-  // console.log("indeeeeex", indx);
-
-  // Function to handle item selection
-  // const handleSelectItem = (id) => {
-  //   setItemIdToUpdate(id);
-  // };
-
   const formik = useFormik({
     initialValues: billingData,
     validationSchema,
-    onSubmit: (values) => {
-      console.log("values", values);
-      // console.log("formik",formik);
+    onSubmit: (values, { resetForm, setSubmitting, setErrors }) => {
+      setBillingData(values);
+      navigate("/invoice");
+      // resetForm();
     },
   });
 
@@ -180,14 +95,28 @@ const ServicesButton = () => {
     return total;
   }, [formik.values.items, formik.values]);
 
+  // const formattedDate = useMemo(() => {
+  //   const date = new Date(formik.values.date);
+  //   console.log("date: " + date);
+  //   return `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+  // }, [formik.values.date]);
+
+  const handleReset = () => {
+    formik.resetForm();
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter") {
+      const newRow = { id: 0, description: "", rate: "", quantity: "" };
+      formik.setFieldValue("items", [...formik.values.items, newRow]);
+    }
+  };
+
   useEffect(() => {
     formik.setFieldValue("subTotal", subTotal);
     formik.setFieldValue("grandTotal", grandTotal);
   }, [subTotal, grandTotal]);
 
-  const formSubmit = () => {
-  };
-  // console.log("useFormik", formik.handleSubmit);
 
   return (
     <>
@@ -249,6 +178,9 @@ const ServicesButton = () => {
           <Button key="cancel" type="primary" danger onClick={handleCancel}>
             Cancel
           </Button>,
+          <Button key="" type="dashed" danger onClick={handleReset}>
+            Reset
+          </Button>,
         ]}
       >
         <div className="container mx-auto">
@@ -292,7 +224,7 @@ const ServicesButton = () => {
               <table className="min-w-max w-full table-auto">
                 <thead>
                   <tr className="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
-                    <th className="py-3 px-6 text-right">{rows.length < 1 && <TiPlus className="text-green-600 text-xl hover:text-gray-800 cursor-pointer" onClick={addRow} />}</th>
+                    <th className="py-3 px-6 text-right">{formik?.values?.items?.length < 1 && <TiPlus className="text-green-600 text-xl hover:text-gray-800 cursor-pointer" onClick={addRow} />}</th>
                     <th className="py-3 px-6 text-left"></th>
                     <th className="py-3 px-6 text-left">Serial.No</th>
                     <th className="py-3 px-6 text-center">Description</th>
@@ -302,7 +234,7 @@ const ServicesButton = () => {
                   </tr>
                 </thead>
                 <tbody className="text-gray-600 text-sm font-light">
-                  {rows.map((row, index) => (
+                  {formik?.values?.items?.map((item, index) => (
                     <tr key={index} className="border-b border-gray-200 hover:bg-gray-100">
                       <td className="py-3 px-6 text-right">
                         <TiPlus className="text-green-600 text-xl hover:text-gray-800 cursor-pointer" onClick={() => addRow(index)} />
@@ -351,6 +283,7 @@ const ServicesButton = () => {
                           type="number"
                           className="form-input w-16 h-7 rounded text-center border font-semibold"
                           required
+                          onKeyDown={handleKeyDown}
                           name={`items[${index}].quantity`}
                           value={formik?.values?.items[index]?.quantity}
                           onChange={formik.handleChange}

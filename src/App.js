@@ -15,6 +15,7 @@ function App() {
     invoice: "",
     items: [
       {
+        id: 0,
         description: "",
         rate: 0,
         quantity: 0,

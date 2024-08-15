@@ -4,8 +4,6 @@ import jsPDF from "jspdf";
 import AlwahdaLogo from "../assets/alwahda_logo-removebg-preview.png";
 import { billingDataContext } from "../contexts/DataContext";
 import alwahdaText from "../assets/Untitled-1.png";
-import { AiOutlineMail } from "react-icons/ai";
-import { GiWorld } from "react-icons/gi";
 
 const Invoice = () => {
   const { billingData } = useContext(billingDataContext);
@@ -136,7 +134,7 @@ const Invoice = () => {
               <td colSpan="4" className="py-2 px-4 text-right font-bold border border-gray-200">
                 Total
               </td>
-              <td className="py-2 px-4 font-bold border border-gray-200">AED {billingData?.totalAmount?.toFixed(2)} </td>
+              <td className="py-2 px-4 font-bold border border-gray-200">AED {billingData?.grandTotal?.toFixed(2)} </td>
             </tr>
           </tfoot>
         </table>
